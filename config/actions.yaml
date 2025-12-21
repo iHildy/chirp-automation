@@ -7,7 +7,7 @@ actions:
     steps:
       - type: ensure_emulator_ready
       - type: wake_and_unlock
-      - type: launch_app
+      - type: ensure_app_open
         package: "com.chirp.access"
       - type: wait_for_selector
         selector:
@@ -15,7 +15,7 @@ actions:
         timeoutMs: 10000
       - type: repeat
         count: 3
-        delayMs: 6000
+        delayMs: 3000
         steps:
           - type: tap_selector
             selector:
@@ -32,7 +32,7 @@ actions:
     steps:
       - type: ensure_emulator_ready
       - type: wake_and_unlock
-      - type: launch_app
+      - type: ensure_app_open
         package: "com.chirp.access"
       - type: wait_for_selector
         selector:
@@ -54,7 +54,7 @@ actions:
     steps:
       - type: ensure_emulator_ready
       - type: wake_and_unlock
-      - type: launch_app
+      - type: ensure_app_open
         package: "com.chirp.access"
       - type: wait_for_selector
         selector:

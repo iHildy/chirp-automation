@@ -62,6 +62,7 @@ Supported step types:
 - `ensure_emulator_ready`
 - `wake_and_unlock`
 - `launch_app`
+- `ensure_app_open`
 - `tap_selector`
 - `tap_coordinates`
 - `wait_for_text`

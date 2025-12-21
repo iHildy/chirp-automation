@@ -182,6 +182,13 @@ export class ActionRunner {
       case "launch_app":
         await this.adb.startApp(step.package, step.activity);
         return;
+      case "ensure_app_open": {
+        const foreground = await this.adb.getForegroundActivity();
+        if (!foreground || !foreground.includes(step.package)) {
+          await this.adb.startApp(step.package, step.activity);
+        }
+        return;
+      }
       case "tap_selector":
         await this.tapSelector(step.selector, step.timeoutMs);
         return;
