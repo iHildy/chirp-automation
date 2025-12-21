@@ -47,7 +47,10 @@ export class ActionRunner {
   private inFlight: InFlightState | null = null;
   private lastResult: ActionResult | null = null;
 
-  constructor(private adb: AdbClient, private options: RunnerOptions) {}
+  constructor(
+    private adb: AdbClient,
+    private options: RunnerOptions
+  ) {}
 
   enqueue(actionId: string, config: ActionConfig): Promise<ActionResult> {
     const job = async () => {
@@ -60,14 +63,20 @@ export class ActionRunner {
     return runPromise;
   }
 
-  getState(): { inFlight: InFlightState | null; lastResult: ActionResult | null } {
+  getState(): {
+    inFlight: InFlightState | null;
+    lastResult: ActionResult | null;
+  } {
     return {
       inFlight: this.inFlight,
       lastResult: this.lastResult,
     };
   }
 
-  private resolveAction(actionId: string, config: ActionConfig): ActionDefinition {
+  private resolveAction(
+    actionId: string,
+    config: ActionConfig
+  ): ActionDefinition {
     const action = config.actions[actionId];
     if (!action) {
       throw new ActionError({
@@ -174,23 +183,89 @@ export class ActionRunner {
           this.options.stepPollMs
         );
         return;
-      case "wake_and_unlock":
-        await this.adb.inputKeyevent(224);
-        await this.adb.inputKeyevent(82);
-        await this.adb.inputKeyevent(3);
+      case "wake_and_unlock": {
+        const wasScreenOn = await this.adb.isScreenOn();
+        logger.info("step.wake_and_unlock", {
+          actionId,
+          stepIndex,
+          wasScreenOn,
+        });
+
+        // Always send wake and menu/unlock
+        await this.adb.inputKeyevent(224); // KEYCODE_WAKEUP
+        await this.adb.inputKeyevent(82); // KEYCODE_MENU (unlock)
+
+        // Only go to home if screen was off (need clean state)
+        // Skip HOME if screen was already on to preserve current app
+        if (!wasScreenOn) {
+          await this.adb.inputKeyevent(3); // KEYCODE_HOME
+        }
         return;
+      }
       case "launch_app":
         await this.adb.startApp(step.package, step.activity);
         return;
       case "ensure_app_open": {
-        const foreground = await this.adb.getForegroundActivity();
-        const alreadyOpen = foreground?.includes(step.package) ?? false;
-        if (!alreadyOpen) {
-          await this.adb.startApp(step.package, step.activity);
+        const stepStart = Date.now();
+
+        // First, check if the package is already in the foreground
+        const foregroundPackage = await this.adb.getForegroundPackage();
+        const packageInForeground = foregroundPackage === step.package;
+
+        logger.info("step.ensure_app_open.check", {
+          actionId,
+          stepIndex,
+          targetPackage: step.package,
+          foregroundPackage,
+          packageInForeground,
+        });
+
+        // Check if selector is visible (if provided)
+        let selectorMatched = false;
+        if (step.alreadyOpenSelector) {
+          selectorMatched = await this.isSelectorVisible(
+            step.alreadyOpenSelector
+          );
+          logger.info("step.ensure_app_open.selector_check", {
+            actionId,
+            stepIndex,
+            selector: step.alreadyOpenSelector,
+            selectorMatched,
+          });
         }
+
+        // App is considered "already open" if:
+        // - Package is in foreground, OR
+        // - alreadyOpenSelector matches (fallback if package detection fails)
+        const alreadyOpen = packageInForeground || selectorMatched;
+
+        if (!alreadyOpen) {
+          logger.info("step.ensure_app_open.launching", {
+            actionId,
+            stepIndex,
+            package: step.package,
+          });
+          await this.adb.startApp(step.package, step.activity);
+        } else {
+          logger.info("step.ensure_app_open.already_open", {
+            actionId,
+            stepIndex,
+            packageInForeground,
+            selectorMatched,
+          });
+        }
+
         const delayMs = alreadyOpen ? step.delayMsIfOpen : step.delayMsIfLaunch;
-        if (delayMs && delayMs > 0) {
-          await sleep(delayMs);
+        if (
+          delayMs &&
+          delayMs > 0 &&
+          !(selectorMatched && step.alreadyOpenSelector)
+        ) {
+          const elapsedMs = Date.now() - stepStart;
+          const remainingMs = delayMs - elapsedMs;
+          if (remainingMs > 0) {
+            await sleep(remainingMs);
+          }
         }
         return;
       }
@@ -288,6 +363,11 @@ export class ActionRunner {
     const bounds = await this.waitForSelector(selector, timeoutMs);
     const { x, y } = boundsCenter(bounds);
     await this.adb.inputTap(x, y);
+  }
+
+  private async isSelectorVisible(selector: Selector): Promise<boolean> {
+    const xml = await dumpUiHierarchy(this.adb);
+    return Boolean(findSelectorBounds(xml, selector));
   }
 
   private async waitForSelector(

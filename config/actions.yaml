@@ -9,14 +9,16 @@ actions:
       - type: wake_and_unlock
       - type: ensure_app_open
         package: "com.chirp.access"
-        delayMsIfOpen: 1000
-        delayMsIfLaunch: 3000
+        alreadyOpenSelector:
+          text: "Parking Garage Gate"
+        delayMsIfOpen: 1
+        delayMsIfLaunch: 1000
       - type: wait_for_selector
         selector:
           text: "Parking Garage Gate"
-        timeoutMs: 10000
+        timeoutMs: 1000
       - type: repeat
-        count: 3
+        count: 1
         delayMs: 3000
         steps:
           - type: tap_selector
@@ -26,7 +28,7 @@ actions:
             selectors:
               - textContains: "UNLOCK"
               - textContains: "LOCKING IN"
-            timeoutMs: 10000
+            timeoutMs: 1000
 
   open_garage:
     description: "Open the garage door in Chirp"

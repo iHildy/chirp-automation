@@ -12,7 +12,10 @@ type RunOptions = {
 };
 
 export class AdbClient {
-  constructor(private adbPath: string, private serial: string) {}
+  constructor(
+    private adbPath: string,
+    private serial: string
+  ) {}
 
   private serialArgs(): string[] {
     return this.serial ? ["-s", this.serial] : [];
@@ -71,22 +74,17 @@ export class AdbClient {
   }
 
   async shell(command: string[], timeoutMs?: number): Promise<string> {
-    const { stdout } = await this.run([
-      ...this.serialArgs(),
-      "shell",
-      ...command,
-    ], {
-      timeoutMs,
-    });
+    const { stdout } = await this.run(
+      [...this.serialArgs(), "shell", ...command],
+      {
+        timeoutMs,
+      }
+    );
     return stdout.trim();
   }
 
   async execOut(command: string[], timeoutMs?: number): Promise<Buffer> {
-    return this.runBuffer([
-      ...this.serialArgs(),
-      "exec-out",
-      ...command,
-    ], {
+    return this.runBuffer([...this.serialArgs(), "exec-out", ...command], {
       timeoutMs,
     });
   }
@@ -103,6 +101,12 @@ export class AdbClient {
     await this.shell(["input", "keyevent", `${keyCode}`]);
   }
 
+  async isScreenOn(): Promise<boolean> {
+    const output = await this.shell(["dumpsys", "power"]);
+    // Look for "mWakefulness=Awake" or "Display Power: state=ON"
+    return output.includes("mWakefulness=Awake") || output.includes("state=ON");
+  }
+
   async inputText(text: string): Promise<void> {
     const escaped = escapeAdbText(text);
     await this.shell(["input", "text", escaped]);
@@ -110,12 +114,7 @@ export class AdbClient {
 
   async startApp(packageName: string, activity?: string): Promise<void> {
     if (activity) {
-      await this.shell([
-        "am",
-        "start",
-        "-n",
-        `${packageName}/${activity}`,
-      ]);
+      await this.shell(["am", "start", "-n", `${packageName}/${activity}`]);
       return;
     }
 
@@ -131,13 +130,42 @@ export class AdbClient {
 
   async getForegroundActivity(): Promise<string | null> {
     const output = await this.shell(["dumpsys", "window", "windows"]);
-    const line = output
-      .split("\n")
-      .find((entry) =>
-        entry.includes("mCurrentFocus") || entry.includes("mFocusedApp")
-      );
+    const lines = output.split("\n");
+    const currentFocus = findLastLine(lines, "mCurrentFocus");
+    if (currentFocus) {
+      return currentFocus.trim();
+    }
+    const focusedApp = findLastLine(lines, "mFocusedApp");
+    return focusedApp ? focusedApp.trim() : null;
+  }
 
-    return line ? line.trim() : null;
+  async getForegroundPackage(): Promise<string | null> {
+    const windowOutput = await this.shell(["dumpsys", "window", "windows"]);
+    const windowLines = windowOutput.split("\n");
+    const fromCurrentFocus = findLastPackage(windowLines, "mCurrentFocus");
+    if (fromCurrentFocus) {
+      return fromCurrentFocus;
+    }
+    const fromFocusedApp = findLastPackage(windowLines, "mFocusedApp");
+    if (fromFocusedApp) {
+      return fromFocusedApp;
+    }
+
+    const activityOutput = await this.shell([
+      "dumpsys",
+      "activity",
+      "activities",
+    ]);
+    const activityLines = activityOutput.split("\n");
+    const fromTopResumed = findLastPackage(activityLines, "topResumedActivity");
+    if (fromTopResumed) {
+      return fromTopResumed;
+    }
+    const fromResumed = findLastPackage(activityLines, "mResumedActivity");
+    if (fromResumed) {
+      return fromResumed;
+    }
+    return findLastPackage(activityLines, "mFocusedActivity");
   }
 }
 
@@ -152,4 +180,38 @@ function escapeAdbText(text: string): string {
     .replace(/>/g, "\\>")
     .replace(/\?/g, "\\?")
     .replace(/!/g, "\\!");
+}
+function extractPackageName(line: string): string | null {
+  const componentMatch = line.match(
+    /\b([A-Za-z0-9_]+(?:\.[A-Za-z0-9_]+)+)\/[A-Za-z0-9_.$]+/
+  );
+  if (componentMatch) {
+    return componentMatch[1];
+  }
+  const packageMatch = line.match(/\b([A-Za-z0-9_]+(?:\.[A-Za-z0-9_]+)+)\b/);
+  return packageMatch ? packageMatch[1] : null;
+}
+
+function findLastLine(lines: string[], key: string): string | null {
+  for (let index = lines.length - 1; index >= 0; index -= 1) {
+    const line = lines[index];
+    if (line.includes(key)) {
+      return line;
+    }
+  }
+  return null;
+}
+
+function findLastPackage(lines: string[], key: string): string | null {
+  for (let index = lines.length - 1; index >= 0; index -= 1) {
+    const line = lines[index];
+    if (!line.includes(key)) {
+      continue;
+    }
+    const pkg = extractPackageName(line);
+    if (pkg) {
+      return pkg;
+    }
+  }
+  return null;
 }

@@ -43,6 +43,7 @@ type StepDefinition =
       type: "ensure_app_open";
       package: string;
       activity?: string;
+      alreadyOpenSelector?: SelectorDefinition;
       delayMsIfOpen?: number;
       delayMsIfLaunch?: number;
     }
@@ -94,6 +95,7 @@ const StepSchema: z.ZodType<StepDefinition> = z.lazy(() =>
       type: z.literal("ensure_app_open"),
       package: z.string().min(1),
       activity: z.string().min(1).optional(),
+      alreadyOpenSelector: SelectorSchema.optional(),
       delayMsIfOpen: z.number().int().nonnegative().optional(),
       delayMsIfLaunch: z.number().int().nonnegative().optional(),
     }),
