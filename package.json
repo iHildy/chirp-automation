@@ -7,7 +7,15 @@
   "scripts": {
     "build": "tsc -p tsconfig.json",
     "start": "node dist/server.js",
-    "dev": "ts-node src/server.ts"
+    "dev": "ts-node src/server.ts",
+    "docker:build": "docker compose build",
+    "docker:up": "docker compose up --build",
+    "docker:down": "docker compose down",
+    "docker:logs": "docker compose logs -f --tail=200",
+    "docker:ps": "docker compose ps",
+    "docker:restart": "docker compose restart",
+    "action": "bash ./scripts/trigger-action.sh",
+    "action:gate": "bash ./scripts/trigger-action.sh tap_parking_garage_gate"
   },
   "dependencies": {
     "express": "^4.19.2",
@@ -17,6 +25,7 @@
   },
   "devDependencies": {
     "@types/express": "^4.17.21",
+    "@types/js-yaml": "^4.0.9",
     "@types/node": "^20.11.17",
     "ts-node": "^10.9.2",
     "typescript": "^5.3.3"

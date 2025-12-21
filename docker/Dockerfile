@@ -1,11 +1,11 @@
-FROM budtmo/docker-android-x86-11.0
+FROM budtmo/docker-android:emulator_11.0
 
 USER root
 WORKDIR /opt/chirp
 
 RUN apt-get update \
   && apt-get install -y --no-install-recommends curl ca-certificates \
-  && curl -fsSL https://deb.nodesource.com/setup_18.x | bash - \
+  && curl -fsSL https://deb.nodesource.com/setup_22.x | bash - \
   && apt-get install -y --no-install-recommends nodejs \
   && rm -rf /var/lib/apt/lists/*
 

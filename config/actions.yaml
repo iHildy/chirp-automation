@@ -1,6 +1,31 @@
 version: 1
 
 actions:
+  tap_parking_garage_gate:
+    description: "Tap the Parking Garage Gate entry on the favorites list"
+    timeoutMs: 90000
+    steps:
+      - type: ensure_emulator_ready
+      - type: wake_and_unlock
+      - type: launch_app
+        package: "com.chirp.access"
+      - type: wait_for_selector
+        selector:
+          text: "Parking Garage Gate"
+        timeoutMs: 10000
+      - type: repeat
+        count: 3
+        delayMs: 6000
+        steps:
+          - type: tap_selector
+            selector:
+              text: "Parking Garage Gate"
+          - type: wait_for_any_selector
+            selectors:
+              - textContains: "UNLOCK"
+              - textContains: "LOCKING IN"
+            timeoutMs: 10000
+
   open_garage:
     description: "Open the garage door in Chirp"
     timeoutMs: 30000
@@ -8,8 +33,7 @@ actions:
       - type: ensure_emulator_ready
       - type: wake_and_unlock
       - type: launch_app
-        package: "com.chirp.app"
-        activity: "com.chirp.app.MainActivity"
+        package: "com.chirp.access"
       - type: wait_for_selector
         selector:
           textContains: "Garage"
@@ -31,8 +55,7 @@ actions:
       - type: ensure_emulator_ready
       - type: wake_and_unlock
       - type: launch_app
-        package: "com.chirp.app"
-        activity: "com.chirp.app.MainActivity"
+        package: "com.chirp.access"
       - type: wait_for_selector
         selector:
           textContains: "Garage"

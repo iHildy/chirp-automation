@@ -41,6 +41,18 @@ curl -H "Authorization: Bearer $API_TOKEN" http://localhost:8080/v1/health
 3. Log in once; emulator data is persisted to `./data` and `avd-data`.
 4. Restart the container to confirm Chirp stays logged in.
 
+## macOS dev (external emulator)
+
+macOS cannot use KVM, so run the Android emulator on the host (Android Studio) and connect the container via ADB over TCP.
+
+```
+export ADB_CONNECT="host.docker.internal:5555"
+export SKIP_EMULATOR_START="true"
+docker compose up --build
+```
+
+If your emulator listens on a different port, update both values accordingly.
+
 ## Actions configuration
 
 Edit `config/actions.yaml` to add or update actions. Each action is a list of steps (tap selectors preferred, coordinates as fallback).
@@ -54,10 +66,12 @@ Supported step types:
 - `tap_coordinates`
 - `wait_for_text`
 - `wait_for_selector`
+- `wait_for_any_selector`
 - `sleep`
 - `input_text`
 - `keyevent`
 - `retry`
+- `repeat`
 
 Selectors match against UIAutomator fields: `text`, `resourceId`, `contentDesc`, and their `*Contains` variants.
 
@@ -76,6 +90,12 @@ Example:
 curl -X POST \
   -H "Authorization: Bearer $API_TOKEN" \
   http://localhost:8080/v1/actions/open_garage
+```
+
+## Local trigger command
+
+```
+API_TOKEN="replace-me" ./scripts/trigger-action.sh tap_parking_garage_gate
 ```
 
 ## Home Assistant example

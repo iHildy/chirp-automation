@@ -1,7 +1,6 @@
-version: "3.8"
-
 services:
   chirp-automation:
+    platform: linux/amd64
     build:
       context: .
       dockerfile: docker/Dockerfile
@@ -9,13 +8,15 @@ services:
       - "8080:8080"
       - "6080:6080"
     environment:
-      API_TOKEN: "change-me"
+      API_TOKEN: "${API_TOKEN:-change-me}"
       PORT: "8080"
-      ADB_SERIAL: "emulator-5554"
+      ADB_SERIAL: "${ADB_SERIAL:-emulator-5554}"
+      ADB_CONNECT: "${ADB_CONNECT:-}"
       ACTIONS_PATH: "/opt/chirp/config/actions.yaml"
       ARTIFACTS_DIR: "/opt/chirp/data/artifacts"
-      EMULATOR_DEVICE: "Samsung Galaxy S10"
+      EMULATOR_DEVICE: "${EMULATOR_DEVICE:-Nexus 5}"
       WEB_VNC: "true"
+      SKIP_EMULATOR_START: "${SKIP_EMULATOR_START:-false}"
     volumes:
       - ./config:/opt/chirp/config
       - ./data:/opt/chirp/data

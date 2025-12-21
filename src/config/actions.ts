@@ -19,8 +19,58 @@ const SelectorSchema = z
     { message: "selector must define at least one match field" }
   );
 
-const StepSchema: z.ZodType<Step> = z.lazy(() =>
-  z.discriminatedUnion("type", [
+type SelectorDefinition = z.infer<typeof SelectorSchema>;
+
+type WaitForTextStep =
+  | {
+      type: "wait_for_text";
+      text: string;
+      textContains?: string;
+      timeoutMs?: number;
+    }
+  | {
+      type: "wait_for_text";
+      text?: string;
+      textContains: string;
+      timeoutMs?: number;
+    };
+
+type StepDefinition =
+  | { type: "ensure_emulator_ready"; timeoutMs?: number }
+  | { type: "wake_and_unlock" }
+  | { type: "launch_app"; package: string; activity?: string }
+  | { type: "tap_selector"; selector: SelectorDefinition; timeoutMs?: number }
+  | { type: "tap_coordinates"; x: number; y: number }
+  | WaitForTextStep
+  | { type: "wait_for_selector"; selector: SelectorDefinition; timeoutMs?: number }
+  | {
+      type: "wait_for_any_selector";
+      selectors: SelectorDefinition[];
+      timeoutMs?: number;
+    }
+  | { type: "sleep"; durationMs: number }
+  | { type: "input_text"; text: string }
+  | { type: "keyevent"; keyCode: number }
+  | { type: "retry"; attempts: number; delayMs?: number; steps: StepDefinition[] }
+  | { type: "repeat"; count: number; delayMs?: number; steps: StepDefinition[] };
+
+const WaitForTextSchema = z.union([
+  z.object({
+    type: z.literal("wait_for_text"),
+    text: z.string().min(1),
+    textContains: z.string().min(1).optional(),
+    timeoutMs: z.number().int().positive().optional(),
+  }),
+  z.object({
+    type: z.literal("wait_for_text"),
+    text: z.string().min(1).optional(),
+    textContains: z.string().min(1),
+    timeoutMs: z.number().int().positive().optional(),
+  }),
+]);
+
+const StepSchema: z.ZodType<StepDefinition> = z.lazy(() =>
+  z.union([
     z.object({
       type: z.literal("ensure_emulator_ready"),
       timeoutMs: z.number().int().positive().optional(),
@@ -43,18 +93,15 @@ const StepSchema: z.ZodType<Step> = z.lazy(() =>
       x: z.number().int().nonnegative(),
       y: z.number().int().nonnegative(),
     }),
-    z.object({
-      type: z.literal("wait_for_text"),
-      text: z.string().min(1).optional(),
-      textContains: z.string().min(1).optional(),
-      timeoutMs: z.number().int().positive().optional(),
-    }).refine(
-      (value) => Boolean(value.text || value.textContains),
-      { message: "wait_for_text requires text or textContains" }
-    ),
+    WaitForTextSchema,
     z.object({
       type: z.literal("wait_for_selector"),
       selector: SelectorSchema,
+      timeoutMs: z.number().int().positive().optional(),
+    }),
+    z.object({
+      type: z.literal("wait_for_any_selector"),
+      selectors: z.array(SelectorSchema).min(1),
       timeoutMs: z.number().int().positive().optional(),
     }),
     z.object({
@@ -75,6 +122,12 @@ const StepSchema: z.ZodType<Step> = z.lazy(() =>
       delayMs: z.number().int().nonnegative().optional(),
       steps: z.array(StepSchema).min(1),
     }),
+    z.object({
+      type: z.literal("repeat"),
+      count: z.number().int().min(1),
+      delayMs: z.number().int().nonnegative().optional(),
+      steps: z.array(StepSchema).min(1),
+    }),
   ])
 );
 
@@ -89,8 +142,8 @@ const ConfigSchema = z.object({
   actions: z.record(ActionSchema),
 });
 
-export type Selector = z.infer<typeof SelectorSchema>;
-export type Step = z.infer<typeof StepSchema>;
+export type Selector = SelectorDefinition;
+export type Step = StepDefinition;
 export type ActionDefinition = z.infer<typeof ActionSchema>;
 export type ActionConfig = z.infer<typeof ConfigSchema>;
 

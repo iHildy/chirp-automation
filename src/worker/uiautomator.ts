@@ -24,6 +24,25 @@ export function findSelectorBounds(
   xml: string,
   selector: Selector
 ): Bounds | null {
+  const result = findAnySelectorBounds(xml, [selector]);
+  return result ? result.bounds : null;
+}
+
+export function boundsCenter(bounds: Bounds): { x: number; y: number } {
+  return {
+    x: Math.round((bounds.left + bounds.right) / 2),
+    y: Math.round((bounds.top + bounds.bottom) / 2),
+  };
+}
+
+export function findAnySelectorBounds(
+  xml: string,
+  selectors: Selector[]
+): { selector: Selector; bounds: Bounds } | null {
+  if (selectors.length === 0) {
+    return null;
+  }
+
   const document = parser.parse(xml);
   const nodes: Record<string, unknown>[] = [];
   collectNodes(document, nodes);
@@ -33,19 +52,15 @@ export function findSelectorBounds(
     if (!fields.bounds) {
       continue;
     }
-    if (matchesSelector(fields, selector)) {
-      return parseBounds(fields.bounds);
+
+    for (const selector of selectors) {
+      if (matchesSelector(fields, selector)) {
+        return { selector, bounds: parseBounds(fields.bounds) };
+      }
     }
   }
 
   return null;
-}
-
-export function boundsCenter(bounds: Bounds): { x: number; y: number } {
-  return {
-    x: Math.round((bounds.left + bounds.right) / 2),
-    y: Math.round((bounds.top + bounds.bottom) / 2),
-  };
 }
 
 type NodeFields = {

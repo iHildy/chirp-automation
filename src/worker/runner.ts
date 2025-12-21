@@ -10,7 +10,12 @@ import {
 import { logger } from "../logger";
 import { sleep, withTimeout } from "../utils/time";
 import { AdbClient } from "./adb";
-import { boundsCenter, dumpUiHierarchy, findSelectorBounds } from "./uiautomator";
+import {
+  boundsCenter,
+  dumpUiHierarchy,
+  findAnySelectorBounds,
+  findSelectorBounds,
+} from "./uiautomator";
 
 export type ActionResult = {
   actionId: string;
@@ -189,6 +194,9 @@ export class ActionRunner {
       case "wait_for_selector":
         await this.waitForSelector(step.selector, step.timeoutMs);
         return;
+      case "wait_for_any_selector":
+        await this.waitForAnySelector(step.selectors, step.timeoutMs);
+        return;
       case "sleep":
         await sleep(step.durationMs);
         return;
@@ -200,6 +208,9 @@ export class ActionRunner {
         return;
       case "retry":
         await this.runWithRetry(actionId, step, stepIndex);
+        return;
+      case "repeat":
+        await this.runRepeat(actionId, step, stepIndex);
         return;
       default:
         throw new Error(`Unsupported step type: ${(step as Step).type}`);
@@ -233,6 +244,27 @@ export class ActionRunner {
           throw error;
         }
         await sleep(step.delayMs ?? 500);
+      }
+    }
+  }
+
+  private async runRepeat(
+    actionId: string,
+    step: Extract<Step, { type: "repeat" }>,
+    stepIndex: number
+  ): Promise<void> {
+    for (let iteration = 1; iteration <= step.count; iteration += 1) {
+      logger.info("step.repeat_iteration", {
+        actionId,
+        stepIndex,
+        iteration,
+        total: step.count,
+      });
+
+      await this.runSteps(actionId, step.steps);
+
+      if (iteration < step.count && (step.delayMs ?? 0) > 0) {
+        await sleep(step.delayMs ?? 0);
       }
     }
   }
@@ -273,6 +305,36 @@ export class ActionRunner {
 
     throw new Error(
       `Selector not found before timeout: ${JSON.stringify(selector)}`
+    );
+  }
+
+  private async waitForAnySelector(
+    selectors: Selector[],
+    timeoutMs?: number
+  ): Promise<void> {
+    const deadline = Date.now() + (timeoutMs ?? this.options.defaultTimeoutMs);
+    let lastError: Error | null = null;
+
+    while (Date.now() < deadline) {
+      try {
+        const xml = await dumpUiHierarchy(this.adb);
+        const result = findAnySelectorBounds(xml, selectors);
+        if (result) {
+          return;
+        }
+      } catch (error) {
+        lastError = error instanceof Error ? error : null;
+      }
+
+      await sleep(this.options.stepPollMs);
+    }
+
+    if (lastError) {
+      throw lastError;
+    }
+
+    throw new Error(
+      `No selectors matched before timeout: ${JSON.stringify(selectors)}`
     );
   }
 
