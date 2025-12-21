@@ -15,8 +15,10 @@ const parser = new XMLParser({
 });
 
 export async function dumpUiHierarchy(adb: AdbClient): Promise<string> {
-  await adb.shell(["uiautomator", "dump", "/sdcard/uidump.xml"]);
-  const xml = await adb.execOut(["cat", "/sdcard/uidump.xml"], 10000);
+  const xml = await adb.execOut(
+    ["sh", "-c", "uiautomator dump /dev/tty >/dev/null; cat /sdcard/window_dump.xml"],
+    10000
+  );
   return xml.toString("utf8");
 }
 

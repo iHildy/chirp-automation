@@ -46,6 +46,8 @@ export class ActionRunner {
   private queue: Promise<void> = Promise.resolve();
   private inFlight: InFlightState | null = null;
   private lastResult: ActionResult | null = null;
+  private uiHierarchyCache: { xml: string; timestamp: number } | null = null;
+  private readonly UI_CACHE_TTL_MS = 500;
 
   constructor(
     private adb: AdbClient,
@@ -190,15 +192,11 @@ export class ActionRunner {
           stepIndex,
           wasScreenOn,
         });
-
-        // Always send wake and menu/unlock
-        await this.adb.inputKeyevent(224); // KEYCODE_WAKEUP
-        await this.adb.inputKeyevent(82); // KEYCODE_MENU (unlock)
-
-        // Only go to home if screen was off (need clean state)
-        // Skip HOME if screen was already on to preserve current app
         if (!wasScreenOn) {
-          await this.adb.inputKeyevent(3); // KEYCODE_HOME
+          await this.adb.inputKeyevent(224);
+          await this.adb.inputKeyevent(82);
+          await this.adb.inputKeyevent(3);
+          this.adb.invalidateScreenCache();
         }
         return;
       }
@@ -208,7 +206,45 @@ export class ActionRunner {
       case "ensure_app_open": {
         const stepStart = Date.now();
 
-        // First, check if the package is already in the foreground
+        if (step.alreadyOpenSelector) {
+          const selectorMatched = await this.isSelectorVisible(
+            step.alreadyOpenSelector
+          );
+          logger.info("step.ensure_app_open.selector_check", {
+            actionId,
+            stepIndex,
+            selector: step.alreadyOpenSelector,
+            selectorMatched,
+          });
+
+          if (selectorMatched) {
+            logger.info("step.ensure_app_open.already_open", {
+              actionId,
+              stepIndex,
+              reason: "selector_matched",
+            });
+            return;
+          }
+
+          logger.info("step.ensure_app_open.launching", {
+            actionId,
+            stepIndex,
+            package: step.package,
+            reason: "selector_not_found",
+          });
+          await this.adb.startApp(step.package, step.activity);
+          this.invalidateUiCache();
+
+          if (step.delayMsIfLaunch && step.delayMsIfLaunch > 0) {
+            const elapsedMs = Date.now() - stepStart;
+            const remainingMs = step.delayMsIfLaunch - elapsedMs;
+            if (remainingMs > 0) {
+              await sleep(remainingMs);
+            }
+          }
+          return;
+        }
+
         const foregroundPackage = await this.adb.getForegroundPackage();
         const packageInForeground = foregroundPackage === step.package;
 
@@ -220,47 +256,27 @@ export class ActionRunner {
           packageInForeground,
         });
 
-        // Check if selector is visible (if provided)
-        let selectorMatched = false;
-        if (step.alreadyOpenSelector) {
-          selectorMatched = await this.isSelectorVisible(
-            step.alreadyOpenSelector
-          );
-          logger.info("step.ensure_app_open.selector_check", {
-            actionId,
-            stepIndex,
-            selector: step.alreadyOpenSelector,
-            selectorMatched,
-          });
-        }
-
-        // App is considered "already open" if:
-        // - Package is in foreground, OR
-        // - alreadyOpenSelector matches (fallback if package detection fails)
-        const alreadyOpen = packageInForeground || selectorMatched;
-
-        if (!alreadyOpen) {
+        if (!packageInForeground) {
           logger.info("step.ensure_app_open.launching", {
             actionId,
             stepIndex,
             package: step.package,
+            reason: "package_not_foreground",
           });
           await this.adb.startApp(step.package, step.activity);
+          this.invalidateUiCache();
         } else {
           logger.info("step.ensure_app_open.already_open", {
             actionId,
             stepIndex,
-            packageInForeground,
-            selectorMatched,
+            reason: "package_in_foreground",
           });
         }
 
-        const delayMs = alreadyOpen ? step.delayMsIfOpen : step.delayMsIfLaunch;
-        if (
-          delayMs &&
-          delayMs > 0 &&
-          !(selectorMatched && step.alreadyOpenSelector)
-        ) {
+        const delayMs = packageInForeground
+          ? step.delayMsIfOpen
+          : step.delayMsIfLaunch;
+        if (delayMs && delayMs > 0) {
           const elapsedMs = Date.now() - stepStart;
           const remainingMs = delayMs - elapsedMs;
           if (remainingMs > 0) {
@@ -365,8 +381,26 @@ export class ActionRunner {
     await this.adb.inputTap(x, y);
   }
 
-  private async isSelectorVisible(selector: Selector): Promise<boolean> {
+  private async getUiHierarchy(): Promise<string> {
+    const now = Date.now();
+    if (
+      this.uiHierarchyCache &&
+      now - this.uiHierarchyCache.timestamp < this.UI_CACHE_TTL_MS
+    ) {
+      return this.uiHierarchyCache.xml;
+    }
+
     const xml = await dumpUiHierarchy(this.adb);
+    this.uiHierarchyCache = { xml, timestamp: now };
+    return xml;
+  }
+
+  private invalidateUiCache(): void {
+    this.uiHierarchyCache = null;
+  }
+
+  private async isSelectorVisible(selector: Selector): Promise<boolean> {
+    const xml = await this.getUiHierarchy();
     return Boolean(findSelectorBounds(xml, selector));
   }
 
@@ -379,7 +413,8 @@ export class ActionRunner {
 
     while (Date.now() < deadline) {
       try {
-        const xml = await dumpUiHierarchy(this.adb);
+        this.invalidateUiCache();
+        const xml = await this.getUiHierarchy();
         const bounds = findSelectorBounds(xml, selector);
         if (bounds) {
           return bounds;
@@ -409,7 +444,8 @@ export class ActionRunner {
 
     while (Date.now() < deadline) {
       try {
-        const xml = await dumpUiHierarchy(this.adb);
+        this.invalidateUiCache();
+        const xml = await this.getUiHierarchy();
         const result = findAnySelectorBounds(xml, selectors);
         if (result) {
           return;
@@ -439,8 +475,9 @@ export class ActionRunner {
     const dir = this.options.artifactsDir;
 
     try {
+      this.invalidateUiCache();
       const screenshot = await this.adb.screencap();
-      const xml = await dumpUiHierarchy(this.adb);
+      const xml = await this.getUiHierarchy();
 
       await Promise.all([
         fs.writeFile(path.join(dir, `${baseName}.png`), screenshot),

@@ -13,10 +13,6 @@ actions:
           text: "Parking Garage Gate"
         delayMsIfOpen: 1
         delayMsIfLaunch: 1000
-      - type: wait_for_selector
-        selector:
-          text: "Parking Garage Gate"
-        timeoutMs: 1000
       - type: repeat
         count: 1
         delayMs: 3000

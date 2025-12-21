@@ -61,11 +61,20 @@ export class AdbClient {
     return stdout.trim();
   }
 
+  private bootCompleteCache: boolean = false;
+  private screenOnCache: { value: boolean; timestamp: number } | null = null;
+  private readonly SCREEN_CACHE_TTL_MS = 2000;
+
   async waitForBootComplete(timeoutMs = 120000, pollMs = 1000): Promise<void> {
+    if (this.bootCompleteCache) {
+      return;
+    }
+
     const start = Date.now();
     while (Date.now() - start < timeoutMs) {
       const value = await this.getProp("sys.boot_completed");
       if (value === "1") {
+        this.bootCompleteCache = true;
         return;
       }
       await sleep(pollMs);
@@ -102,9 +111,24 @@ export class AdbClient {
   }
 
   async isScreenOn(): Promise<boolean> {
+    const now = Date.now();
+    if (
+      this.screenOnCache &&
+      now - this.screenOnCache.timestamp < this.SCREEN_CACHE_TTL_MS
+    ) {
+      return this.screenOnCache.value;
+    }
+
     const output = await this.shell(["dumpsys", "power"]);
-    // Look for "mWakefulness=Awake" or "Display Power: state=ON"
-    return output.includes("mWakefulness=Awake") || output.includes("state=ON");
+    const isOn =
+      output.includes("mWakefulness=Awake") || output.includes("state=ON");
+
+    this.screenOnCache = { value: isOn, timestamp: now };
+    return isOn;
+  }
+
+  invalidateScreenCache(): void {
+    this.screenOnCache = null;
   }
 
   async inputText(text: string): Promise<void> {
