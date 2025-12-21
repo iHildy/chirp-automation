@@ -9,6 +9,8 @@ actions:
       - type: wake_and_unlock
       - type: ensure_app_open
         package: "com.chirp.access"
+        delayMsIfOpen: 1000
+        delayMsIfLaunch: 3000
       - type: wait_for_selector
         selector:
           text: "Parking Garage Gate"
@@ -34,6 +36,8 @@ actions:
       - type: wake_and_unlock
       - type: ensure_app_open
         package: "com.chirp.access"
+        delayMsIfOpen: 1000
+        delayMsIfLaunch: 3000
       - type: wait_for_selector
         selector:
           textContains: "Garage"
@@ -56,6 +60,8 @@ actions:
       - type: wake_and_unlock
       - type: ensure_app_open
         package: "com.chirp.access"
+        delayMsIfOpen: 1000
+        delayMsIfLaunch: 3000
       - type: wait_for_selector
         selector:
           textContains: "Garage"

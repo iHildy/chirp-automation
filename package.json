@@ -10,10 +10,13 @@
     "dev": "ts-node src/server.ts",
     "docker:build": "docker compose build",
     "docker:up": "docker compose up --build",
+    "docker:up:mac": "ADB_CONNECT=host.docker.internal:5555 SKIP_EMULATOR_START=true docker compose up --build",
     "docker:down": "docker compose down",
     "docker:logs": "docker compose logs -f --tail=200",
     "docker:ps": "docker compose ps",
     "docker:restart": "docker compose restart",
+    "docker:watch": "docker compose watch",
+    "docker:watch:mac": "ADB_CONNECT=host.docker.internal:5555 SKIP_EMULATOR_START=true docker compose watch",
     "action": "bash ./scripts/trigger-action.sh",
     "action:gate": "bash ./scripts/trigger-action.sh tap_parking_garage_gate"
   },

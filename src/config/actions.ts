@@ -39,7 +39,13 @@ type StepDefinition =
   | { type: "ensure_emulator_ready"; timeoutMs?: number }
   | { type: "wake_and_unlock" }
   | { type: "launch_app"; package: string; activity?: string }
-  | { type: "ensure_app_open"; package: string; activity?: string }
+  | {
+      type: "ensure_app_open";
+      package: string;
+      activity?: string;
+      delayMsIfOpen?: number;
+      delayMsIfLaunch?: number;
+    }
   | { type: "tap_selector"; selector: SelectorDefinition; timeoutMs?: number }
   | { type: "tap_coordinates"; x: number; y: number }
   | WaitForTextStep
@@ -88,6 +94,8 @@ const StepSchema: z.ZodType<StepDefinition> = z.lazy(() =>
       type: z.literal("ensure_app_open"),
       package: z.string().min(1),
       activity: z.string().min(1).optional(),
+      delayMsIfOpen: z.number().int().nonnegative().optional(),
+      delayMsIfLaunch: z.number().int().nonnegative().optional(),
     }),
     z.object({
       type: z.literal("tap_selector"),

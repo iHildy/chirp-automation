@@ -184,8 +184,13 @@ export class ActionRunner {
         return;
       case "ensure_app_open": {
         const foreground = await this.adb.getForegroundActivity();
-        if (!foreground || !foreground.includes(step.package)) {
+        const alreadyOpen = foreground?.includes(step.package) ?? false;
+        if (!alreadyOpen) {
           await this.adb.startApp(step.package, step.activity);
+        }
+        const delayMs = alreadyOpen ? step.delayMsIfOpen : step.delayMsIfLaunch;
+        if (delayMs && delayMs > 0) {
+          await sleep(delayMs);
         }
         return;
       }
