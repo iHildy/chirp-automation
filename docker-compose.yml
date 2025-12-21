@@ -1,0 +1,28 @@
+version: "3.8"
+
+services:
+  chirp-automation:
+    build:
+      context: .
+      dockerfile: docker/Dockerfile
+    ports:
+      - "8080:8080"
+      - "6080:6080"
+    environment:
+      API_TOKEN: "change-me"
+      PORT: "8080"
+      ADB_SERIAL: "emulator-5554"
+      ACTIONS_PATH: "/opt/chirp/config/actions.yaml"
+      ARTIFACTS_DIR: "/opt/chirp/data/artifacts"
+      EMULATOR_DEVICE: "Samsung Galaxy S10"
+      WEB_VNC: "true"
+    volumes:
+      - ./config:/opt/chirp/config
+      - ./data:/opt/chirp/data
+      - avd-data:/home/androidusr/.android/avd
+    devices:
+      - /dev/kvm
+    privileged: true
+
+volumes:
+  avd-data:
