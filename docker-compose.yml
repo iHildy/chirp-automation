@@ -21,6 +21,7 @@ services:
       - ./config:/opt/chirp/config
       - ./data:/opt/chirp/data
       - avd-data:/home/androidusr/.android/avd
+      - adb-keys:/root/.android
     devices:
       - /dev/kvm
     privileged: true
@@ -35,3 +36,4 @@ services:
 
 volumes:
   avd-data:
+  adb-keys:

@@ -14,8 +14,8 @@ actions:
         delayMsIfOpen: 1
         delayMsIfLaunch: 1000
       - type: repeat
-        count: 1
-        delayMs: 3000
+        count: 3
+        delayMs: 6000
         steps:
           - type: tap_selector
             selector:
