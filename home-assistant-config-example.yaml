@@ -1,0 +1,42 @@
+# Home Assistant Configuration Example
+# Add this to your Home Assistant configuration.yaml
+
+# REST Commands for Chirp Actions
+rest_command:
+  chirp_tap_parking_gate:
+    url: "http://chirp-automation:8080/v1/actions/tap_parking_garage_gate"
+    method: POST
+    headers:
+      Authorization: "Bearer !secret chirp_api_token"
+    timeout: 90
+
+# Health Check Sensor (Optional)
+sensor:
+  - platform: rest
+    name: "Chirp Automation Status"
+    resource: "http://chirp-automation:8080/v1/health"
+    method: GET
+    headers:
+      Authorization: "Bearer !secret chirp_api_token"
+    value_template: "{{ value_json.status }}"
+    json_attributes:
+      - emulator
+      - adbSerial
+    scan_interval: 60
+
+  - platform: rest
+    name: "Chirp Emulator Ready"
+    resource: "http://chirp-automation:8080/v1/ready"
+    method: GET
+    headers:
+      Authorization: "Bearer !secret chirp_api_token"
+    value_template: "{{ value_json.status }}"
+    scan_interval: 60
+
+# Scripts (Optional - easier to call from UI)
+script:  
+  parking_gate_unlock:
+    alias: "Unlock Parking Gate"
+    icon: mdi:gate
+    sequence:
+      - service: rest_command.chirp_tap_parking_gate

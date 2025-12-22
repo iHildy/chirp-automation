@@ -1,5 +1,6 @@
 services:
   chirp-automation:
+    container_name: chirp-automation
     platform: linux/amd64
     build:
       context: .
