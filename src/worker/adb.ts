@@ -72,14 +72,28 @@ export class AdbClient {
 
     const start = Date.now();
     while (Date.now() - start < timeoutMs) {
-      const value = await this.getProp("sys.boot_completed");
-      if (value === "1") {
-        this.bootCompleteCache = true;
-        return;
+      try {
+        const [sysBoot, devBoot] = await Promise.all([
+          this.getProp("sys.boot_completed"),
+          this.getProp("dev.bootcomplete"),
+        ]);
+
+        if (sysBoot === "1" || devBoot === "1") {
+          this.bootCompleteCache = true;
+          return;
+        }
+      } catch {
+        console.error("Error getting boot complete status");
+        await sleep(pollMs);
+        continue;
       }
+
       await sleep(pollMs);
     }
-    throw new Error("Emulator did not finish booting in time");
+
+    throw new Error(
+      `Emulator did not finish booting in time (timeout ${timeoutMs}ms)`
+    );
   }
 
   async shell(command: string[], timeoutMs?: number): Promise<string> {

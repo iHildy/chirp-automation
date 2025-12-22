@@ -50,14 +50,50 @@ app.post("/v1/actions/:actionId", async (req, res) => {
 });
 
 app.get("/v1/health", async (_req, res) => {
+  const payload: {
+    status: "ok";
+    adbSerial: string;
+    emulator: {
+      status: "ok" | "starting" | "down";
+      bootCompleted: boolean;
+      error?: string;
+    };
+  } = {
+    status: "ok",
+    adbSerial: env.adbSerial,
+    emulator: {
+      status: "down",
+      bootCompleted: false,
+    },
+  };
+
   try {
     await adb.waitForDevice(3000);
     const booted = await adb.getProp("sys.boot_completed");
-    res.json({
+    payload.emulator = {
       status: booted === "1" ? "ok" : "starting",
-      adbSerial: env.adbSerial,
       bootCompleted: booted === "1",
-    });
+    };
+  } catch (error) {
+    payload.emulator = {
+      status: "down",
+      bootCompleted: false,
+      error: error instanceof Error ? error.message : "Unknown error",
+    };
+  }
+
+  res.json(payload);
+});
+
+app.get("/v1/ready", async (_req, res) => {
+  try {
+    await adb.waitForDevice(3000);
+    const booted = await adb.getProp("sys.boot_completed");
+    if (booted !== "1") {
+      res.status(503).json({ status: "starting", bootCompleted: false });
+      return;
+    }
+    res.json({ status: "ok", bootCompleted: true });
   } catch (error) {
     res.status(503).json({
       status: "down",

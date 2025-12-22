@@ -9,6 +9,10 @@ SKIP_EMULATOR_START=${SKIP_EMULATOR_START:-false}
 # Ensure it's always set for headless (noVNC) operation.
 export DISPLAY=${DISPLAY:-:0}
 
+# Avoid slow/fragile quickboot snapshot behavior on fresh volumes.
+# These defaults can be overridden by setting EMULATOR_ADDITIONAL_ARGS.
+export EMULATOR_ADDITIONAL_ARGS="${EMULATOR_ADDITIONAL_ARGS:--no-snapshot-load -no-snapshot-save -no-boot-anim}"
+
 log() {
   echo "[$(date -u +"%Y-%m-%dT%H:%M:%SZ")] $*" >&2
 }

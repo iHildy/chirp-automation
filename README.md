@@ -30,10 +30,16 @@ export API_TOKEN="replace-me"
 docker compose up --build
 ```
 
-3. Confirm health:
+3. Confirm the API is up:
 
 ```
 curl -H "Authorization: Bearer $API_TOKEN" http://localhost:${CHIRP_HTTP_PORT:-3000}/v1/health
+```
+
+4. Confirm the emulator is booted (readiness):
+
+```
+curl -H "Authorization: Bearer $API_TOKEN" http://localhost:${CHIRP_HTTP_PORT:-3000}/v1/ready
 ```
 
 ## First-run setup (manual)
@@ -83,7 +89,8 @@ Selectors match against UIAutomator fields: `text`, `resourceId`, `contentDesc`,
 All endpoints require `Authorization: Bearer <token>`.
 
 - `POST /v1/actions/:actionId`
-- `GET /v1/health`
+- `GET /v1/health` (API up + emulator status)
+- `GET /v1/ready` (503 until emulator booted)
 - `GET /v1/debug/screenshot`
 - `GET /v1/debug/state`
 

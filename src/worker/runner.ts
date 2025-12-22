@@ -104,12 +104,23 @@ export class ActionRunner {
 
     try {
       await fs.mkdir(this.options.artifactsDir, { recursive: true });
+
+      let remainingSteps = action.steps;
+      const preSteps: Step[] = [];
+      while (
+        remainingSteps.length > 0 &&
+        remainingSteps[0]?.type === "ensure_emulator_ready"
+      ) {
+        preSteps.push(remainingSteps[0]);
+        remainingSteps = remainingSteps.slice(1);
+      }
+
+      if (preSteps.length > 0) {
+        await this.runSteps(actionId, preSteps);
+      }
+
       const timeoutMs = action.timeoutMs ?? this.options.defaultTimeoutMs;
-      await withTimeout(
-        this.runSteps(actionId, action.steps),
-        timeoutMs,
-        `Action ${actionId}`
-      );
+      await withTimeout(this.runSteps(actionId, remainingSteps), timeoutMs, `Action ${actionId}`);
 
       const result: ActionResult = {
         actionId,
@@ -177,14 +188,12 @@ export class ActionRunner {
     stepIndex: number
   ): Promise<void> {
     switch (step.type) {
-      case "ensure_emulator_ready":
-        const readyTimeoutMs = step.timeoutMs ?? 120000;
-        await this.adb.waitForDevice(Math.min(readyTimeoutMs, 30000));
-        await this.adb.waitForBootComplete(
-          readyTimeoutMs,
-          this.options.stepPollMs
-        );
+      case "ensure_emulator_ready": {
+        const readyTimeoutMs = step.timeoutMs ?? 600000;
+        await this.adb.waitForDevice(readyTimeoutMs);
+        await this.adb.waitForBootComplete(readyTimeoutMs, this.options.stepPollMs);
         return;
+      }
       case "wake_and_unlock": {
         const wasScreenOn = await this.adb.isScreenOn();
         logger.info("step.wake_and_unlock", {
