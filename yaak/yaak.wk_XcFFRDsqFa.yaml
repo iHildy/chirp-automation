@@ -2,13 +2,19 @@ type: workspace
 model: workspace
 id: wk_XcFFRDsqFa
 createdAt: 2025-12-21T18:32:22.590170
-updatedAt: 2025-12-21T20:02:44.256663
-authentication: {}
-authenticationType: apikey
+updatedAt: 2025-12-22T06:38:14.576441
+authentication:
+  key: Bearer
+  token: ${[ secure(value=b64'WUVOQ19lVUUwYXpOdVF3SHR1QkhGaXlPWkxtRjQ1QUdpczJMeEZ1ZHVvTTA4NksvNG9qMFRvdTQrYmJ6bUR6YUhGUHBTRjNpL1ZlTWVuQytMM3ppZUo2em1aVTI4ZXZUZjRHa2orbVl1Z2FTY0IwdVU1Vmho') ]}
+authenticationType: bearer
 description: ''
-headers: []
+headers:
+- enabled: true
+  name: ''
+  value: ''
+  id: 9y37zCrkZg
 name: chirp-automation
-encryptionKeyChallenge: null
+encryptionKeyChallenge: eUE0azNuQwEctU/1xnbsIVOlY9YfnbicngmZ8tn7CX9TrEXGGAS0RubxiOlWd4Y4gXC1AMuyASAxrJ3IbVUtnLFP5GXkvnrnIXg27cTNIyVyXBbKF1TWZqfWgOzYgjab6bE=
 settingValidateCertificates: true
 settingFollowRedirects: true
 settingRequestTimeout: 0

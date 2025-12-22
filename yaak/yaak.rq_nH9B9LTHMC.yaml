@@ -1,0 +1,18 @@
+type: http_request
+model: http_request
+id: rq_nH9B9LTHMC
+createdAt: 2025-12-22T06:27:19.499884
+updatedAt: 2025-12-22T06:27:44.632300
+workspaceId: wk_XcFFRDsqFa
+folderId: null
+authentication: {}
+authenticationType: null
+body: {}
+bodyType: null
+description: ''
+headers: []
+method: GET
+name: chirp.hildy.io/v1/health Copy 2
+sortPriority: 0.001
+url: https://chirp.hildy.io/v1/actions/ensure_emulator_ready
+urlParameters: []

@@ -74,6 +74,14 @@ actions:
         textContains: "Closed"
         timeoutMs: 10000
 
+  check_ready:
+    description: "Smoke test: ensure emulator is ready"
+    timeoutMs: 20000
+    steps:
+      - type: ensure_emulator_ready
+      - type: sleep
+        durationMs: 1000
+
   tap_coordinates_example:
     description: "Example using fallback coordinates"
     timeoutMs: 15000

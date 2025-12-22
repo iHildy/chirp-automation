@@ -2,7 +2,7 @@ type: http_request
 model: http_request
 id: rq_8WbYmdzrEW
 createdAt: 2025-12-21T18:32:27.683746
-updatedAt: 2025-12-21T20:04:17.620120
+updatedAt: 2025-12-22T06:26:25.350795
 workspaceId: wk_XcFFRDsqFa
 folderId: null
 authentication: {}
@@ -18,9 +18,9 @@ headers:
 - enabled: true
   name: ''
   value: ''
-  id: 7I5tPefuqK
+  id: mTs0XqZjSy
 method: POST
 name: Trigger tap_parking_garage_gate
-sortPriority: -1766341947682.0
+sortPriority: 2000.0
 url: http://localhost:8080/v1/actions/tap_parking_garage_gate
 urlParameters: []
