@@ -23,6 +23,12 @@ services:
     volumes:
       # Persist emulator + ADB state (and artifacts) under /home/androidusr
       - android-home:/home/androidusr
+    healthcheck:
+      test: ["CMD-SHELL", "curl -fsS -H \"Authorization: Bearer $API_TOKEN\" http://127.0.0.1:${PORT:-8080}/v1/ready > /dev/null"]
+      interval: 10s
+      timeout: 5s
+      retries: 12
+      start_period: 180s
     devices:
       - /dev/kvm
     privileged: true

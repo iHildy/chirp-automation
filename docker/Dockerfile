@@ -36,4 +36,8 @@ ENV PORT=8080
 
 EXPOSE 8080 6080
 
+# Container is healthy when the emulator is fully booted.
+HEALTHCHECK --interval=10s --timeout=5s --start-period=180s --retries=12 \
+  CMD curl -fsS -H "Authorization: Bearer $API_TOKEN" "http://127.0.0.1:${PORT:-8080}/v1/ready" > /dev/null || exit 1
+
 ENTRYPOINT ["/opt/chirp/entrypoint.sh"]
