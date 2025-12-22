@@ -8,6 +8,8 @@ Self-hosted Android emulator + REST API for automating the Chirp app. The emulat
 - KVM kernel modules loaded and `/dev/kvm` available
 - Docker (and docker-compose plugin)
 
+If you are deploying onto a VM or a “server inside a container”, you must have **nested virtualization** enabled and ensure `/dev/kvm` is passed through to the container. If `/dev/kvm` is not present inside the container, the emulator will not start.
+
 Example host packages:
 
 ```
@@ -109,6 +111,12 @@ rest_command:
     headers:
       Authorization: "Bearer <token>"
 ```
+
+## Troubleshooting
+
+- `RuntimeError: /dev/kvm cannot be found!`: the container cannot see KVM. Verify the host has `/dev/kvm`, and run with `--device /dev/kvm` (and typically `--privileged`). If you are inside another VM/container, enable nested virtualization and pass `/dev/kvm` through each layer.
+- `Openbox-Message: Failed to open the display...`: the container could not connect to Xvfb. This project sets `DISPLAY=:0` automatically; if you override `DISPLAY`, make sure it matches the running X display.
+- `API_TOKEN is required to start the server`: set `API_TOKEN` in your environment (or via your orchestrator) before starting.
 
 ## Notes
 
