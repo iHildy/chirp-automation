@@ -45,6 +45,28 @@ curl -H "Authorization: Bearer $API_TOKEN" http://localhost:${CHIRP_HTTP_PORT:-3
 curl -H "Authorization: Bearer $API_TOKEN" http://localhost:${CHIRP_HTTP_PORT:-3000}/v1/ready
 ```
 
+## Coolify Setup
+
+1. Create a new resource in Coolify:
+   - **Name**: chirp-automation
+   - **Build Pack**: Docker Compose
+   - **Docker Compose Location**: `/docker-compose.yaml` (default, no modification needed)
+
+2. Configure **Domains**:
+   - `https://chirp-automation.mycoolify.io:3000`
+   - `https://vnc-chirp-automation.mycoolify.io:6080`
+   - **Note**: Use `http://` instead of `https://` if using [Cloudflare Tunnels](https://coolify.io/docs/knowledge-base/cloudflare/tunnels/full-tls#_7-update-urls-from-http-to-https)
+
+3. Set **Environment Variables**:
+   - `SKIP_EMULATOR_START=false`
+   - `API_TOKEN=replace-me` (change to a secure token)
+   - `SERVICE_FQDN_CHIRP_AUTOMATION=chirp-automation.mycoolify.io`
+   - `SERVICE_URL_CHIRP_AUTOMATION=https://chirp.mycoolify.io` (use `http://` if using Cloudflare Tunnels)
+
+4. Enable **Consistent Container Names** in the Advanced settings.
+
+5. The remaining environment variables will be set automatically, and persistent data will be configured by the compose file.
+
 ## First-run setup (manual)
 
 1. Open the noVNC UI at `http://localhost:${CHIRP_VNC_PORT:-6080}`.
