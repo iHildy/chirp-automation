@@ -17,7 +17,13 @@ log() {
   echo "[$(date -u +"%Y-%m-%dT%H:%M:%SZ")] $*" >&2
 }
 
-mkdir -p "$ARTIFACTS_DIR"
+if ! mkdir -p "$ARTIFACTS_DIR" 2>/dev/null; then
+  fallback="/home/androidusr/chirp-artifacts"
+  log "WARNING: cannot create artifacts dir at $ARTIFACTS_DIR; falling back to $fallback"
+  ARTIFACTS_DIR="$fallback"
+  export ARTIFACTS_DIR
+  mkdir -p "$ARTIFACTS_DIR"
+fi
 
 if [ ! -f "$ACTIONS_PATH" ]; then
   log "WARNING: actions config not found at $ACTIONS_PATH"

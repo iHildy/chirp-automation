@@ -21,8 +21,8 @@ services:
     volumes:
       - ./config:/opt/chirp/config
       - ./data:/opt/chirp/data
-      - avd-data:/home/androidusr/.android/avd
-      - adb-keys:/root/.android
+      # budtmo/docker-android persists emulator + ADB state under /home/androidusr
+      - android-home:/home/androidusr
     devices:
       - /dev/kvm
     privileged: true
@@ -36,5 +36,4 @@ services:
           path: ./tsconfig.json
 
 volumes:
-  avd-data:
-  adb-keys:
+  android-home:

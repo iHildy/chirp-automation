@@ -4,7 +4,7 @@ USER root
 WORKDIR /opt/chirp
 
 RUN apt-get update \
-  && apt-get install -y --no-install-recommends curl ca-certificates \
+  && apt-get install -y --no-install-recommends curl ca-certificates python3-xdg \
   && curl -fsSL https://deb.nodesource.com/setup_22.x | bash - \
   && apt-get install -y --no-install-recommends nodejs \
   && rm -rf /var/lib/apt/lists/*
@@ -20,7 +20,12 @@ RUN npm install --no-fund --no-audit \
 COPY config /opt/chirp/config
 COPY docker/entrypoint.sh /opt/chirp/entrypoint.sh
 
-RUN chmod +x /opt/chirp/entrypoint.sh
+RUN chmod +x /opt/chirp/entrypoint.sh \
+  && chown -R androidusr:androidusr /opt/chirp
+
+# budtmo/docker-android images expect to run as `androidusr`.
+# Running as root can break AVD discovery (HOME/.android paths).
+USER androidusr
 
 ENV NODE_ENV=production
 ENV PORT=8080

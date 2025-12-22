@@ -46,7 +46,7 @@ curl -H "Authorization: Bearer $API_TOKEN" http://localhost:${CHIRP_HTTP_PORT:-3
 
 1. Open the noVNC UI at `http://localhost:${CHIRP_VNC_PORT:-6080}`.
 2. Install Chirp (Play Store or sideload APK).
-3. Log in once; emulator data is persisted to `./data` and `avd-data`.
+3. Log in once; emulator + ADB state is persisted to `./data` and the `android-home` volume (`/home/androidusr`).
 4. Restart the container to confirm Chirp stays logged in.
 
 ## macOS dev (external emulator)
