@@ -26,6 +26,14 @@ if ! mkdir -p "$ARTIFACTS_DIR" 2>/dev/null; then
   mkdir -p "$ARTIFACTS_DIR"
 fi
 
+DEFAULT_ACTIONS_PATH="/opt/chirp-default/config/actions.yaml"
+
+if [ ! -f "$ACTIONS_PATH" ] && [ -f "$DEFAULT_ACTIONS_PATH" ]; then
+  log "WARNING: actions config not found at $ACTIONS_PATH; using bundled defaults at $DEFAULT_ACTIONS_PATH"
+  ACTIONS_PATH="$DEFAULT_ACTIONS_PATH"
+  export ACTIONS_PATH
+fi
+
 if [ ! -f "$ACTIONS_PATH" ]; then
   log "WARNING: actions config not found at $ACTIONS_PATH"
 fi

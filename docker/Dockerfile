@@ -18,10 +18,14 @@ RUN npm install --no-fund --no-audit \
   && npm prune --production
 
 COPY config /opt/chirp/config
+# Keep a bundled default config path that won't be shadowed by a volume mount.
+COPY config /opt/chirp-default/config
 COPY docker/entrypoint.sh /opt/chirp/entrypoint.sh
 
-RUN chmod +x /opt/chirp/entrypoint.sh \
-  && chown -R androidusr:androidusr /opt/chirp
+RUN mkdir -p /tmp/.X11-unix \
+  && chmod 1777 /tmp/.X11-unix \
+  && chmod +x /opt/chirp/entrypoint.sh \
+  && chown -R androidusr:androidusr /opt/chirp /opt/chirp-default
 
 # budtmo/docker-android images expect to run as `androidusr`.
 # Running as root can break AVD discovery (HOME/.android paths).

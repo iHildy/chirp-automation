@@ -13,15 +13,15 @@ services:
       PORT: "${PORT:-8080}"
       ADB_SERIAL: "${ADB_SERIAL:-emulator-5554}"
       ADB_CONNECT: "${ADB_CONNECT:-}"
+      # Use baked-in config by default. (Binding an empty /opt/chirp/config will hide it.)
       ACTIONS_PATH: "/opt/chirp/config/actions.yaml"
-      ARTIFACTS_DIR: "/opt/chirp/data/artifacts"
+      # Prefer a writable, persisted location for artifacts.
+      ARTIFACTS_DIR: "/home/androidusr/chirp-artifacts"
       EMULATOR_DEVICE: "${EMULATOR_DEVICE:-Nexus 5}"
       WEB_VNC: "true"
       SKIP_EMULATOR_START: "${SKIP_EMULATOR_START:-false}"
     volumes:
-      - ./config:/opt/chirp/config
-      - ./data:/opt/chirp/data
-      # budtmo/docker-android persists emulator + ADB state under /home/androidusr
+      # Persist emulator + ADB state (and artifacts) under /home/androidusr
       - android-home:/home/androidusr
     devices:
       - /dev/kvm
