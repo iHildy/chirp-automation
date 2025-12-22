@@ -2,10 +2,10 @@ type: workspace
 model: workspace
 id: wk_XcFFRDsqFa
 createdAt: 2025-12-21T18:32:22.590170
-updatedAt: 2025-12-22T06:38:14.576441
+updatedAt: 2025-12-22T20:05:53.148090
 authentication:
   key: Bearer
-  token: ${[ secure(value=b64'WUVOQ19lVUUwYXpOdVF3SHR1QkhGaXlPWkxtRjQ1QUdpczJMeEZ1ZHVvTTA4NksvNG9qMFRvdTQrYmJ6bUR6YUhGUHBTRjNpL1ZlTWVuQytMM3ppZUo2em1aVTI4ZXZUZjRHa2orbVl1Z2FTY0IwdVU1Vmho') ]}
+  token: ${[ secure(value=b64'WUVOQ19lVUUwYXpOdVF3RlJkN3c1cHJWTW1HUHpZamdXVFNhYU1FSGNBVjRob05IdERPK1lMcEUzdDNNcnFqRzYreTR5ZHpFZEVBelg0NC9FSGhVbGRzTWlrendyV0Y4cmRPUmpqMVZaUDg1WXdJdFcwc1By') ]}
 authenticationType: bearer
 description: ''
 headers:
