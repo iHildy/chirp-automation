@@ -5,6 +5,50 @@ Self-hosted Android emulator + REST API for automating the Chirp Access app. The
 > [!IMPORTANT]  
 > This is a small side project to save me 10 seconds when arriving at my apartment, because of that most of this code was created by AI and not thoroughly reviewed by me. Use at your own risk.
 
+## Architecture
+
+```mermaid
+graph TB
+    subgraph "External Clients"
+        HA[Home Assistant]
+        User[User/Scripts]
+    end
+    
+    subgraph "Docker Host with KVM"
+        subgraph "Docker Compose Stack"
+            API[REST API Server<br/>:3000]
+            VNC[noVNC Web UI<br/>:6080]
+            
+            subgraph "Android Emulator Container"
+                EMU[Android Emulator<br/>KVM accelerated]
+                CHIRP[Chirp Access App<br/>logged in & hot]
+                ADB[ADB Server<br/>:5555]
+                XVFB[Xvfb Display]
+            end
+        end
+        
+        DATA[(Persistent Storage<br/>./data + volumes)]
+    end
+    
+    HA -->|POST /v1/actions/:actionId<br/>Bearer token| API
+    User -->|POST /v1/actions/:actionId<br/>Bearer token| API
+    User -->|View/Setup<br/>http://localhost:6080| VNC
+    
+    API -->|UIAutomator commands| ADB
+    ADB -->|Control app| CHIRP
+    CHIRP -->|Runs on| EMU
+    VNC -->|Display| XVFB
+    EMU -->|Renders to| XVFB
+    
+    EMU -.->|Persists state| DATA
+    CHIRP -.->|Stays logged in| DATA
+    
+    style CHIRP fill:#4CAF50
+    style API fill:#2196F3
+    style EMU fill:#FF9800
+    style DATA fill:#9C27B0
+```
+
 ## Prerequisites
 
 - Linux x86_64 host with virtualization enabled in BIOS/UEFI
