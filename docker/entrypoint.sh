@@ -10,8 +10,9 @@ SKIP_EMULATOR_START=${SKIP_EMULATOR_START:-false}
 export DISPLAY=${DISPLAY:-:0}
 
 # Avoid slow/fragile quickboot snapshot behavior on fresh volumes.
+# Also disable audio + metrics prompts to reduce noise and potential future blocking.
 # These defaults can be overridden by setting EMULATOR_ADDITIONAL_ARGS.
-export EMULATOR_ADDITIONAL_ARGS="${EMULATOR_ADDITIONAL_ARGS:--no-snapshot-load -no-snapshot-save -no-boot-anim}"
+export EMULATOR_ADDITIONAL_ARGS="${EMULATOR_ADDITIONAL_ARGS:--no-snapshot-load -no-snapshot-save -no-boot-anim -no-audio -no-metrics}"
 
 log() {
   echo "[$(date -u +"%Y-%m-%dT%H:%M:%SZ")] $*" >&2
