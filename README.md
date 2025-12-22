@@ -1,4 +1,4 @@
-# Chirp UI Automation Container
+# Chirp Access App Automation
 
 Self-hosted Android emulator + REST API for automating the Chirp Access app. The emulator stays hot and logged in; Home Assistant can trigger actions via HTTP.
 
