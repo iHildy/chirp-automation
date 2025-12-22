@@ -202,3 +202,55 @@ rest_command:
 - Google Play Store is not supported on Docker Android environments; use Aurora Store or sideload APKs instead.
 - UI updates can break selectors. Use `/v1/debug/screenshot` and the artifacts in `data/artifacts` to update selectors quickly.
 - For security, keep this service on your LAN or behind a reverse proxy.
+
+### My Setup: Parking Garage Gate Automation Flow
+
+```mermaid
+sequenceDiagram
+    participant ESP1 as ESP32 Sensor 1<br/>(Window 1)
+    participant ESP2 as ESP32 Sensor 2<br/>(Window 2)
+    participant MQTT as Mosquitto MQTT<br/>(Container)
+    participant HA as Home Assistant
+    participant API as REST API<br/>:3000
+    participant ADB as ADB + UIAutomator
+    participant EMU as Android Emulator
+    participant CHIRP as Chirp Access App
+
+    Note over ESP1,ESP2: Car transponder detected moving<br/>toward apartment entrance
+    ESP1->>MQTT: Publish presence event
+    ESP2->>MQTT: Publish presence event
+    MQTT->>HA: Forward MQTT messages
+    
+    Note over HA: Determine direction<br/>from sensor sequence
+    HA->>API: POST /v1/actions/tap_parking_garage_gate<br/>Bearer token
+    
+    Note over API,CHIRP: Action: tap_parking_garage_gate
+    API->>ADB: 1. ensure_emulator_ready
+    ADB->>EMU: Check emulator status
+    EMU-->>ADB: Ready ✓
+    
+    API->>ADB: 2. wake_and_unlock
+    ADB->>EMU: Wake screen & unlock
+    
+    API->>ADB: 3. ensure_app_open<br/>(com.chirp.access)
+    ADB->>CHIRP: Check if app open<br/>(text: "Parking Garage Gate")
+    alt App already open
+        Note over ADB,CHIRP: Wait 1ms
+    else App needs launch
+        ADB->>CHIRP: Launch app
+        Note over ADB,CHIRP: Wait 1000ms
+    end
+    
+    API->>ADB: 4. repeat (3x, 6s delay)
+    loop 3 times
+        ADB->>CHIRP: tap_selector<br/>(text: "Parking Garage Gate")
+        CHIRP->>CHIRP: Tap button
+        ADB->>CHIRP: wait_for_any_selector<br/>("UNLOCK" or "LOCKING IN")
+        Note over ADB,CHIRP: Wait 6s before retry
+    end
+    
+    CHIRP-->>CHIRP: Gate unlocked!
+    
+    API-->>HA: 200 OK - Action completed
+    Note over HA: Log success & notify user
+```
