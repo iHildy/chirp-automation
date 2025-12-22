@@ -20,6 +20,29 @@ const runner = new ActionRunner(adb, {
   stepPollMs: env.stepPollMs,
 });
 
+// Unauthenticated health/readiness endpoints for orchestration.
+// Keep these outside `/v1` so reverse proxies can healthcheck without headers.
+app.get("/healthz", (_req, res) => {
+  res.json({ status: "ok" });
+});
+
+app.get("/readyz", async (_req, res) => {
+  try {
+    await adb.waitForDevice(3000);
+    const booted = await adb.getProp("sys.boot_completed");
+    if (booted !== "1") {
+      res.status(503).json({ status: "starting", bootCompleted: false });
+      return;
+    }
+    res.json({ status: "ok", bootCompleted: true });
+  } catch (error) {
+    res.status(503).json({
+      status: "down",
+      error: error instanceof Error ? error.message : "Unknown error",
+    });
+  }
+});
+
 app.use("/v1", (req, res, next) => {
   const authHeader = req.header("authorization") ?? "";
   const token = authHeader.startsWith("Bearer ")
