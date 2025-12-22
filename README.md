@@ -45,7 +45,10 @@ curl -H "Authorization: Bearer $API_TOKEN" http://localhost:${CHIRP_HTTP_PORT:-3
 ## First-run setup (manual)
 
 1. Open the noVNC UI at `http://localhost:${CHIRP_VNC_PORT:-6080}`.
-2. Install Chirp (Play Store or sideload APK).
+2. Install Chirp:
+   - **Note**: Google Play Store is not supported on Docker Android environments
+   - Recommended: Install [Aurora Store](https://auroraoss.com/aurora-store) APK and install apps from there
+   - Most apps on APK Mirror sites are .xapk files that are not easy to get working, just use the Aurora Store to install them.
 3. Log in once; emulator + ADB state is persisted to `./data` and the `android-home` volume (`/home/androidusr`).
 4. Restart the container to confirm Chirp stays logged in.
 
@@ -127,6 +130,6 @@ rest_command:
 
 ## Notes
 
-- If Chirp is ARM-only or uses device integrity checks, it may not run on x86 emulators.
+- Google Play Store is not supported on Docker Android environments; use Aurora Store or sideload APKs instead.
 - UI updates can break selectors. Use `/v1/debug/screenshot` and the artifacts in `data/artifacts` to update selectors quickly.
 - For security, keep this service on your LAN or behind a reverse proxy.
