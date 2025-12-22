@@ -53,8 +53,8 @@ curl -H "Authorization: Bearer $API_TOKEN" http://localhost:${CHIRP_HTTP_PORT:-3
    - **Docker Compose Location**: `/docker-compose.yaml` (default, no modification needed)
 
 2. Configure **Domains**:
-   - `https://chirp-automation.mycoolify.io:3000`
-   - `https://vnc-chirp-automation.mycoolify.io:6080`
+   - `https://chirp-automation.mycoolify.io:3000,https://vnc-chirp-automation.mycoolify.io:6080`
+   - REMOVE THESE AND RESTART THE CONTAINER AFTER SETTING UP THE DEVICE (otherwise your device will be open to the internet)
    - **Note**: Use `http://` instead of `https://` if using [Cloudflare Tunnels](https://coolify.io/docs/knowledge-base/cloudflare/tunnels/full-tls#_7-update-urls-from-http-to-https)
 
 3. Set **Environment Variables**:
