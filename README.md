@@ -33,12 +33,12 @@ docker compose up --build
 3. Confirm health:
 
 ```
-curl -H "Authorization: Bearer $API_TOKEN" http://localhost:8080/v1/health
+curl -H "Authorization: Bearer $API_TOKEN" http://localhost:${CHIRP_HTTP_PORT:-3000}/v1/health
 ```
 
 ## First-run setup (manual)
 
-1. Open the noVNC UI at `http://localhost:6080`.
+1. Open the noVNC UI at `http://localhost:${CHIRP_VNC_PORT:-6080}`.
 2. Install Chirp (Play Store or sideload APK).
 3. Log in once; emulator data is persisted to `./data` and `avd-data`.
 4. Restart the container to confirm Chirp stays logged in.
@@ -92,7 +92,7 @@ Example:
 ```
 curl -X POST \
   -H "Authorization: Bearer $API_TOKEN" \
-  http://localhost:8080/v1/actions/open_garage
+  http://localhost:${CHIRP_HTTP_PORT:-3000}/v1/actions/open_garage
 ```
 
 ## Local trigger command
@@ -106,7 +106,7 @@ API_TOKEN="replace-me" ./scripts/trigger-action.sh tap_parking_garage_gate
 ```
 rest_command:
   chirp_open_garage:
-    url: "http://<host>:8080/v1/actions/open_garage"
+    url: "http://<host>:${CHIRP_HTTP_PORT:-3000}/v1/actions/open_garage"
     method: POST
     headers:
       Authorization: "Bearer <token>"

@@ -5,11 +5,11 @@ services:
       context: .
       dockerfile: docker/Dockerfile
     ports:
-      - "8080:8080"
-      - "6080:6080"
+      - "${CHIRP_HTTP_PORT:-3000}:${PORT:-8080}"
+      - "${CHIRP_VNC_PORT:-6080}:6080"
     environment:
-      API_TOKEN: "${API_TOKEN:-change-me}"
-      PORT: "8080"
+      API_TOKEN: "${API_TOKEN}"
+      PORT: "${PORT:-8080}"
       ADB_SERIAL: "${ADB_SERIAL:-emulator-5554}"
       ADB_CONNECT: "${ADB_CONNECT:-}"
       ACTIONS_PATH: "/opt/chirp/config/actions.yaml"
