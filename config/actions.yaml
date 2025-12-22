@@ -26,54 +26,6 @@ actions:
               - textContains: "LOCKING IN"
             timeoutMs: 1000
 
-  open_garage:
-    description: "Open the garage door in Chirp"
-    timeoutMs: 30000
-    steps:
-      - type: ensure_emulator_ready
-      - type: wake_and_unlock
-      - type: ensure_app_open
-        package: "com.chirp.access"
-        delayMsIfOpen: 1000
-        delayMsIfLaunch: 3000
-      - type: wait_for_selector
-        selector:
-          textContains: "Garage"
-        timeoutMs: 10000
-      - type: tap_selector
-        selector:
-          textContains: "Garage"
-      - type: tap_selector
-        selector:
-          textContains: "Open"
-      - type: wait_for_text
-        textContains: "Opened"
-        timeoutMs: 10000
-
-  close_garage:
-    description: "Close the garage door in Chirp"
-    timeoutMs: 30000
-    steps:
-      - type: ensure_emulator_ready
-      - type: wake_and_unlock
-      - type: ensure_app_open
-        package: "com.chirp.access"
-        delayMsIfOpen: 1000
-        delayMsIfLaunch: 3000
-      - type: wait_for_selector
-        selector:
-          textContains: "Garage"
-        timeoutMs: 10000
-      - type: tap_selector
-        selector:
-          textContains: "Garage"
-      - type: tap_selector
-        selector:
-          textContains: "Close"
-      - type: wait_for_text
-        textContains: "Closed"
-        timeoutMs: 10000
-
   check_ready:
     description: "Smoke test: ensure emulator is ready"
     timeoutMs: 20000
