@@ -18,6 +18,70 @@ log() {
   echo "[$(date -u +"%Y-%m-%dT%H:%M:%SZ")] $*" >&2
 }
 
+# Clean up stale Android emulator lock files that persist after container restart.
+# The emulator uses .lock files to prevent multiple instances, but these aren't
+# cleaned up when the container is stopped abruptly (docker stop/kill/crash).
+# This causes "Running multiple emulators with the same AVD" errors on restart.
+cleanup_stale_emulator_locks() {
+  local avd_home="${ANDROID_AVD_HOME:-/home/androidusr/.android/avd}"
+  local emulator_home="/home/androidusr/emulator"
+  
+  # Check if any emulator process is actually running - if so, don't touch locks
+  if pgrep -f "qemu-system" >/dev/null 2>&1 || pgrep -f "emulator" >/dev/null 2>&1; then
+    log "Emulator process detected; skipping lock cleanup"
+    return 0
+  fi
+  
+  local lock_count=0
+  
+  # Clean locks in the AVD directory (e.g., ~/.android/avd/*.avd/)
+  if [ -d "$avd_home" ]; then
+    for avd_dir in "$avd_home"/*.avd; do
+      if [ -d "$avd_dir" ]; then
+        for lock_file in "$avd_dir"/*.lock; do
+          if [ -f "$lock_file" ]; then
+            log "Removing stale AVD lock: $lock_file"
+            rm -f "$lock_file" || true
+            lock_count=$((lock_count + 1))
+          fi
+        done
+      fi
+    done
+  fi
+  
+  # Clean locks in the emulator data directory (used by docker-android)
+  if [ -d "$emulator_home" ]; then
+    for lock_file in "$emulator_home"/*.lock; do
+      if [ -f "$lock_file" ]; then
+        log "Removing stale emulator lock: $lock_file"
+        rm -f "$lock_file" || true
+        lock_count=$((lock_count + 1))
+      fi
+    done
+  fi
+  
+  # Also clean the multiinstance.lock in the AVD root if present
+  local multiinstance_lock="$avd_home/multiinstance.lock"
+  if [ -f "$multiinstance_lock" ]; then
+    log "Removing stale multiinstance lock: $multiinstance_lock"
+    rm -f "$multiinstance_lock" || true
+    lock_count=$((lock_count + 1))
+  fi
+  
+  # Clean any hardware-qemu.ini.lock files that might be in alternate locations
+  for lock_file in /home/androidusr/.android/*.lock /home/androidusr/*.lock; do
+    if [ -f "$lock_file" ]; then
+      log "Removing stale lock: $lock_file"
+      rm -f "$lock_file" || true
+      lock_count=$((lock_count + 1))
+    fi
+  done
+  
+  if [ "$lock_count" -gt 0 ]; then
+    log "Cleaned up $lock_count stale emulator lock file(s)"
+  fi
+}
+
 if ! mkdir -p "$ARTIFACTS_DIR" 2>/dev/null; then
   fallback="/home/androidusr/chirp-artifacts"
   log "WARNING: cannot create artifacts dir at $ARTIFACTS_DIR; falling back to $fallback"
@@ -43,6 +107,9 @@ start_emulator_if_enabled() {
     log "SKIP_EMULATOR_START=true; skipping emulator startup"
     return 0
   fi
+
+  # Clean up any stale lock files from previous container runs
+  cleanup_stale_emulator_locks
 
   # docker-android's CLI hard-fails when /dev/kvm is absent.
   if [ ! -e /dev/kvm ]; then
