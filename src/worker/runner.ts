@@ -103,6 +103,7 @@ export class ActionRunner {
     logger.info("action.start", { actionId });
 
     try {
+      await this.dismissSystemUiDialog();
       await fs.mkdir(this.options.artifactsDir, { recursive: true });
 
       let remainingSteps = action.steps;
@@ -428,6 +429,13 @@ export class ActionRunner {
         if (bounds) {
           return bounds;
         }
+
+        // If not found, check for System UI "not responding" dialog
+        if (await this.checkAndDismissSystemUiDialog(xml)) {
+          // If we dismissed a dialog, wait a bit for it to disappear and try again immediately
+          await sleep(this.options.stepPollMs);
+          continue;
+        }
       } catch (error) {
         lastError = error instanceof Error ? error : null;
       }
@@ -458,6 +466,13 @@ export class ActionRunner {
         const result = findAnySelectorBounds(xml, selectors);
         if (result) {
           return;
+        }
+
+        // If not found, check for System UI "not responding" dialog
+        if (await this.checkAndDismissSystemUiDialog(xml)) {
+          // If we dismissed a dialog, wait a bit for it to disappear and try again immediately
+          await sleep(this.options.stepPollMs);
+          continue;
         }
       } catch (error) {
         lastError = error instanceof Error ? error : null;
@@ -501,5 +516,48 @@ export class ActionRunner {
         error: error instanceof Error ? error.message : "unknown error",
       });
     }
+  }
+
+  private async dismissSystemUiDialog(): Promise<void> {
+    try {
+      this.invalidateUiCache();
+      const xml = await this.getUiHierarchy();
+      await this.checkAndDismissSystemUiDialog(xml);
+    } catch (error) {
+      logger.warn("system_ui.dismiss_check_failed", {
+        error: error instanceof Error ? error.message : "unknown error",
+      });
+    }
+  }
+
+  private async checkAndDismissSystemUiDialog(xml: string): Promise<boolean> {
+    const dialogSelectors: Selector[] = [
+      { textContains: "System UI isn't responding" },
+      { textContains: "Process system isn't responding" },
+      { textContains: "System UI is not responding" },
+    ];
+
+    const waitButtonSelectors: Selector[] = [
+      { text: "Wait" },
+      { text: "WAIT" },
+    ];
+
+    const hasDialog = dialogSelectors.some((s) => findSelectorBounds(xml, s));
+    if (!hasDialog) {
+      return false;
+    }
+
+    const waitResult = findAnySelectorBounds(xml, waitButtonSelectors);
+    if (waitResult) {
+      logger.info("system_ui.dismissing", {
+        reason: "detected_not_responding_dialog",
+      });
+      const { x, y } = boundsCenter(waitResult.bounds);
+      await this.adb.inputTap(x, y);
+      this.invalidateUiCache();
+      return true;
+    }
+
+    return false;
   }
 }
