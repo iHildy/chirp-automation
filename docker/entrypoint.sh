@@ -1,6 +1,29 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
+# =============================================================================
+# ROOT-ONLY SETUP (runs first when container starts as root)
+# =============================================================================
+if [ "$(id -u)" = "0" ]; then
+  # Fix KVM permissions for androidusr (UID 1300, GID 1301)
+  # This fixes the "sudo: unknown user root" bug in budtmo/docker-android
+  if [ -e /dev/kvm ]; then
+    chown 1300:1301 /dev/kvm 2>/dev/null || true
+    chmod 660 /dev/kvm 2>/dev/null || true
+  fi
+
+  # Ensure androidusr owns necessary directories (in case volume was created as root)
+  chown -R 1300:1301 /home/androidusr 2>/dev/null || true
+  chown -R 1300:1301 /opt/chirp 2>/dev/null || true
+
+  # Re-exec this script as androidusr using gosu
+  exec gosu androidusr "$0" "$@"
+fi
+
+# =============================================================================
+# ANDROIDUSR CONTEXT (everything below runs as androidusr)
+# =============================================================================
+
 ARTIFACTS_DIR=${ARTIFACTS_DIR:-/opt/chirp/data/artifacts}
 ACTIONS_PATH=${ACTIONS_PATH:-/opt/chirp/config/actions.yaml}
 SKIP_EMULATOR_START=${SKIP_EMULATOR_START:-false}
@@ -80,6 +103,64 @@ cleanup_stale_emulator_locks() {
   if [ "$lock_count" -gt 0 ]; then
     log "Cleaned up $lock_count stale emulator lock file(s)"
   fi
+}
+
+# =============================================================================
+# EMULATOR WATCHDOG
+# Monitors emulator process health and restarts if it dies unexpectedly.
+# Runs as a background process alongside the main Node.js server.
+# =============================================================================
+emulator_watchdog() {
+  local initial_delay=120
+  local check_interval=30
+  local restart_cooldown=60
+  local last_restart=0
+
+  log "WATCHDOG: Starting emulator health monitor (initial delay: ${initial_delay}s)"
+  sleep "$initial_delay"
+
+  while true; do
+    if [ "$SKIP_EMULATOR_START" != "true" ] && [ -e /dev/kvm ]; then
+      # Check if qemu-system (the actual emulator process) is running
+      if ! pgrep -f "qemu-system" >/dev/null 2>&1; then
+        local now
+        now=$(date +%s)
+        local elapsed=$((now - last_restart))
+
+        if [ "$elapsed" -ge "$restart_cooldown" ]; then
+          log "WATCHDOG: Emulator process not found, attempting restart..."
+          cleanup_stale_emulator_locks
+
+          # Restart emulator using the best available method
+          if [ -x /opt/docker-android/start.sh ]; then
+            log "WATCHDOG: Restarting via /opt/docker-android/start.sh"
+            /opt/docker-android/start.sh &
+          elif [ -x /start.sh ]; then
+            log "WATCHDOG: Restarting via /start.sh"
+            /start.sh &
+          elif command -v docker-android >/dev/null 2>&1; then
+            log "WATCHDOG: Restarting via docker-android CLI"
+            docker-android start display_screen &
+            sleep 2
+            docker-android start display_wm &
+            docker-android start device &
+            docker-android start port_forwarder &
+            if [ "${WEB_VNC:-}" = "true" ]; then
+              docker-android start vnc_server &
+              docker-android start vnc_web &
+            fi
+          else
+            log "WATCHDOG: No restart method available"
+          fi
+
+          last_restart=$now
+        else
+          log "WATCHDOG: Emulator down but in cooldown (${elapsed}s < ${restart_cooldown}s)"
+        fi
+      fi
+    fi
+    sleep "$check_interval"
+  done
 }
 
 if ! mkdir -p "$ARTIFACTS_DIR" 2>/dev/null; then
@@ -175,6 +256,13 @@ start_emulator_if_enabled() {
 }
 
 start_emulator_if_enabled
+
+# Start emulator watchdog in background (monitors and restarts emulator if it dies)
+if [ "$SKIP_EMULATOR_START" != "true" ]; then
+  emulator_watchdog &
+  WATCHDOG_PID=$!
+  log "WATCHDOG: Started with PID $WATCHDOG_PID"
+fi
 
 if command -v adb >/dev/null 2>&1; then
   adb start-server || true

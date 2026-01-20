@@ -4,7 +4,7 @@ USER root
 WORKDIR /opt/chirp
 
 RUN apt-get update \
-  && apt-get install -y --no-install-recommends curl ca-certificates python3-xdg \
+  && apt-get install -y --no-install-recommends curl ca-certificates python3-xdg gosu \
   && curl -fsSL https://deb.nodesource.com/setup_22.x | bash - \
   && apt-get install -y --no-install-recommends nodejs \
   && rm -rf /var/lib/apt/lists/*
@@ -28,8 +28,8 @@ RUN mkdir -p /tmp/.X11-unix \
   && chown -R androidusr:androidusr /opt/chirp /opt/chirp-default
 
 # budtmo/docker-android images expect to run as `androidusr`.
-# Running as root can break AVD discovery (HOME/.android paths).
-USER androidusr
+# Entrypoint starts as root to fix /dev/kvm permissions, then drops to androidusr via gosu.
+# Do NOT add USER androidusr here - the entrypoint handles privilege drop.
 
 ENV NODE_ENV=production
 ENV PORT=8080

@@ -5,6 +5,13 @@ services:
     build:
       context: .
       dockerfile: docker/Dockerfile
+    shm_size: 1g
+    restart: unless-stopped
+    deploy:
+      resources:
+        limits:
+          cpus: "1"
+          memory: 2g
     ports:
       - "${CHIRP_HTTP_PORT:-3000}:${PORT:-8080}"
       - "${CHIRP_VNC_PORT:-6080}:6080"
@@ -24,7 +31,11 @@ services:
       # Persist emulator + ADB state (and artifacts) under /home/androidusr
       - android-home:/home/androidusr
     healthcheck:
-      test: ["CMD-SHELL", "curl -fsS http://127.0.0.1:${PORT:-8080}/readyz > /dev/null"]
+      test:
+        [
+          "CMD-SHELL",
+          "curl -fsS http://127.0.0.1:${PORT:-8080}/readyz > /dev/null",
+        ]
       interval: 10s
       timeout: 5s
       retries: 12
