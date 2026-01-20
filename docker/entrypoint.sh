@@ -35,7 +35,7 @@ export DISPLAY=${DISPLAY:-:0}
 # Avoid slow/fragile quickboot snapshot behavior on fresh volumes.
 # Also disable audio + metrics prompts to reduce noise and potential future blocking.
 # These defaults can be overridden by setting EMULATOR_ADDITIONAL_ARGS.
-export EMULATOR_ADDITIONAL_ARGS="${EMULATOR_ADDITIONAL_ARGS:--no-snapshot-load -no-snapshot-save -no-boot-anim -no-audio -no-metrics}"
+export EMULATOR_ADDITIONAL_ARGS="${EMULATOR_ADDITIONAL_ARGS:--no-snapshot-load -no-snapshot-save -no-boot-anim -no-audio -no-metrics -gpu swiftshader_indirect -memory 2048}"
 
 log() {
   echo "[$(date -u +"%Y-%m-%dT%H:%M:%SZ")] $*" >&2
