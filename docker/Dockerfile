@@ -1,6 +1,10 @@
 FROM budtmo/docker-android:emulator_11.0
 
 USER root
+
+# Ensure root user exists in /etc/passwd and /etc/group (fixes "unknown user root" bug in some base images)
+RUN grep -q '^root:' /etc/passwd || echo 'root:x:0:0:root:/root:/bin/bash' >> /etc/passwd && \
+    grep -q '^root:' /etc/group || echo 'root:x:0:' >> /etc/group
 WORKDIR /opt/chirp
 
 RUN apt-get update \
