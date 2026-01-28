@@ -41,6 +41,26 @@ log() {
   echo "[$(date -u +"%Y-%m-%dT%H:%M:%SZ")] $*" >&2
 }
 
+# Generate self-signed SSL certificate for HTTPS VNC access
+generate_ssl_cert() {
+  local cert_path="/opt/chirp/self.pem"
+  
+  if [ -f "$cert_path" ]; then
+    log "SSL certificate already exists at $cert_path"
+    return 0
+  fi
+  
+  log "Generating self-signed SSL certificate at $cert_path"
+  openssl req -x509 -nodes -newkey rsa:2048 -keyout "$cert_path" -out "$cert_path" \
+    -days 365 -subj "/CN=chirp-vnc/O=Chirp Automation/C=US" 2>/dev/null || {
+    log "WARNING: Failed to generate SSL certificate, websockify will run without SSL"
+    return 1
+  }
+  
+  chmod 600 "$cert_path"
+  log "SSL certificate generated successfully"
+}
+
 # Clean up stale Android emulator lock files that persist after container restart.
 # The emulator uses .lock files to prevent multiple instances, but these aren't
 # cleaned up when the container is stopped abruptly (docker stop/kill/crash).
@@ -147,8 +167,12 @@ emulator_watchdog() {
             docker-android start port_forwarder &
             if [ "${WEB_VNC:-}" = "true" ]; then
               docker-android start vnc_server &
-              # Start websockify directly without SSL to avoid noise logs
-              websockify --web /opt/noVNC 6080 localhost:5900 &
+              # Start websockify with SSL certificate for HTTPS access
+              if [ -f /opt/chirp/self.pem ]; then
+                websockify --web /opt/noVNC --cert /opt/chirp/self.pem 6080 localhost:5900 &
+              else
+                websockify --web /opt/noVNC 6080 localhost:5900 &
+              fi
             fi
           else
             log "WATCHDOG: No restart method available"
@@ -182,6 +206,11 @@ fi
 
 if [ ! -f "$ACTIONS_PATH" ]; then
   log "WARNING: actions config not found at $ACTIONS_PATH"
+fi
+
+# Generate SSL certificate for HTTPS VNC access if WEB_VNC is enabled
+if [ "${WEB_VNC:-}" = "true" ]; then
+  generate_ssl_cert
 fi
 
 start_emulator_if_enabled() {
@@ -252,8 +281,12 @@ start_emulator_if_enabled() {
 
   if [ "${WEB_VNC:-}" = "true" ]; then
     docker-android start vnc_server &
-    # Start websockify directly without SSL to avoid noise logs
-    websockify --web /opt/noVNC 6080 localhost:5900 &
+    # Start websockify with SSL certificate for HTTPS access
+    if [ -f /opt/chirp/self.pem ]; then
+      websockify --web /opt/noVNC --cert /opt/chirp/self.pem 6080 localhost:5900 &
+    else
+      websockify --web /opt/noVNC 6080 localhost:5900 &
+    fi
   fi
 }
 
