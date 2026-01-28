@@ -8,7 +8,7 @@ RUN grep -q '^root:' /etc/passwd || echo 'root:x:0:0:root:/root:/bin/bash' >> /e
 WORKDIR /opt/chirp
 
 RUN apt-get update \
-  && apt-get install -y --no-install-recommends curl ca-certificates python3-xdg gosu \
+  && apt-get install -y --no-install-recommends curl ca-certificates python3-xdg gosu tini \
   && curl -fsSL https://deb.nodesource.com/setup_22.x | bash - \
   && apt-get install -y --no-install-recommends nodejs \
   && rm -rf /var/lib/apt/lists/*
@@ -44,4 +44,4 @@ EXPOSE 8080 6080
 HEALTHCHECK --interval=10s --timeout=5s --start-period=180s --retries=12 \
   CMD curl -fsS "http://127.0.0.1:${PORT:-8080}/readyz" > /dev/null || exit 1
 
-ENTRYPOINT ["/opt/chirp/entrypoint.sh"]
+ENTRYPOINT ["/usr/bin/tini", "--", "/opt/chirp/entrypoint.sh"]

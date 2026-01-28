@@ -147,7 +147,8 @@ emulator_watchdog() {
             docker-android start port_forwarder &
             if [ "${WEB_VNC:-}" = "true" ]; then
               docker-android start vnc_server &
-              docker-android start vnc_web &
+              # Start websockify directly without SSL to avoid noise logs
+              websockify --web /usr/share/novnc 6080 localhost:5900 &
             fi
           else
             log "WATCHDOG: No restart method available"
@@ -251,7 +252,8 @@ start_emulator_if_enabled() {
 
   if [ "${WEB_VNC:-}" = "true" ]; then
     docker-android start vnc_server &
-    docker-android start vnc_web &
+    # Start websockify directly without SSL to avoid noise logs
+    websockify --web /usr/share/novnc 6080 localhost:5900 &
   fi
 }
 
